@@ -1,0 +1,95 @@
+
+DROP TABLE IF EXISTS Anomalies;
+DROP TABLE IF EXISTS Events;
+DROP TABLE IF EXISTS CrashProbabilities;
+DROP TABLE IF EXISTS Coordinates;
+DROP TABLE IF EXISTS Objects;
+DROP TABLE IF EXISTS SituationTypes;
+DROP TABLE IF EXISTS Constellations;
+DROP TABLE IF EXISTS Systems;
+DROP TABLE IF EXISTS Galaxies;
+DROP TABLE IF EXISTS ObjectTypes;
+
+CREATE TABLE ObjectTypes (
+    ID INT PRIMARY KEY,
+    Name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE Galaxies (
+    Catalog_ID VARCHAR(50) PRIMARY KEY,
+    Name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE Systems (
+    Catalog_ID VARCHAR(50) PRIMARY KEY,
+    Name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE Constellations (
+    Catalog_ID VARCHAR(10) PRIMARY KEY,
+    Name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE SituationTypes (
+    ID INT PRIMARY KEY,
+    Name VARCHAR(50) NOT NULL UNIQUE
+);
+
+CREATE TABLE Objects (
+    Catalog_ID VARCHAR(10) PRIMARY KEY,
+    Name VARCHAR(50) NOT NULL,
+    Object_Type_ID INT REFERENCES ObjectTypes(ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    Galaxy_ID VARCHAR(50) REFERENCES Galaxies(Catalog_ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    System_ID VARCHAR(50) REFERENCES Systems(Catalog_ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    Constellation_ID VARCHAR(10) REFERENCES Constellations(Catalog_ID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE Coordinates (
+    Coordinate_ID BIGINT PRIMARY KEY,
+    Coordinate_X FLOAT NOT NULL,
+    Coordinate_Y FLOAT NOT NULL,
+    Coordinate_Z FLOAT NOT NULL,
+    Observation_at DATETIME2 NOT NULL,
+    Object_ID VARCHAR(10) REFERENCES Objects(Catalog_ID)
+        ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE CrashProbabilities (
+    ID BIGINT PRIMARY KEY,
+    Probability FLOAT CHECK (Probability BETWEEN 0 AND 1),
+    Calculated_At DATETIME2 DEFAULT SYSUTCDATETIME(),
+    Object_1_ID VARCHAR(10) REFERENCES Objects(Catalog_ID)
+        ON DELETE NO ACTION ON UPDATE NO ACTION,
+    Object_2_ID VARCHAR(10) REFERENCES Objects(Catalog_ID)
+        ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+
+CREATE TABLE Events (
+    Event_ID BIGINT PRIMARY KEY,
+    Start_Time DATETIME2 DEFAULT SYSUTCDATETIME(),
+    End_Time DATETIME2,
+    Object_ID VARCHAR(10) REFERENCES Objects(Catalog_ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    Situation_Type_ID INT REFERENCES SituationTypes(ID)
+        ON DELETE NO ACTION ON UPDATE CASCADE,
+    CHECK (End_Time IS NULL OR End_Time > Start_Time)
+);
+
+CREATE TABLE Anomalies (
+    Anomaly_ID BIGINT PRIMARY KEY,
+    Description VARCHAR(500),
+    Start_Time DATETIME2 DEFAULT SYSUTCDATETIME(),
+    End_Time DATETIME2,
+    Object_ID VARCHAR(10) REFERENCES Objects(Catalog_ID)
+        ON DELETE CASCADE ON UPDATE CASCADE,
+    Expected_Situation_Type_ID INT REFERENCES SituationTypes(ID)
+        ON DELETE NO ACTION ON UPDATE NO ACTION,
+    Received_Situation_Type_ID INT REFERENCES SituationTypes(ID)
+        ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CHECK (Expected_Situation_Type_ID != Received_Situation_Type_ID),
+    CHECK (End_Time IS NULL OR End_Time > Start_Time)
+);
